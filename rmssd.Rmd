@@ -1,0 +1,155 @@
+---
+title: "Baseline & Stress: Heart Rate"
+author: "Brandon L. Kramer"
+date: "9/14/2019"
+output: html_document
+---
+
+This study, entited *Baseline & Stress*, was designed (1) to determine the best “resting state” method to ensure that participants are at their baseline levels of heart rate, respiratory activity, and blood pressure before starting psychophysiological experiments and (2) to examine how individuals respond to well-estbalish laboratory stressor called the Stroop task. For a more comprehensive overview, see the Study Overview and IRB proposals in the docs folder. 
+
+The first step is concatenating all of the data and reducing the dimensions to carry out a comparison of best baselines tests and to examine the physiological reactivity of participants in the study. Given the complex nature of psychophysiological research 
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline-and-resilience/data")
+library(tidyverse); library(cowplot); library(plotly)
+meta_data <- read.csv("BL_ComputerLogs_091419.csv") %>% select(-1) %>% arrange(subject_id) %>% drop_na()
+hrv_data <- read.csv("BL_CompiledHRVData_091419.csv") %>% select(-1) %>% arrange(subject_id) %>% drop_na()
+```
+
+```{r importing data, warning=FALSE}
+
+combined_data <- meta_data %>% 
+  inner_join(hrv_data, by = "subject_id") %>% 
+  select(subject_id, condition, semester, appointment_time, segment, segment_number, 
+         mean_heart_rate, rsa, rmssd, mean_ibi, rsp_rate, initial_sbp, initial_dbp, 
+         baseline_start, baseline_end, stroop_start, stroop_end, prebaseline_stress, postbaseline_stress, 
+         work_station, cnap_label, mp150_label, fingercuff_label, fingercuff_size, armcuff_label, armcuff_size, ecg_label) 
+combined_data <- as_tibble(combined_data)
+
+meta_data %>% group_by(appointment_time) %>% tally()
+meta_data %>% group_by(semester) %>% tally()
+meta_data %>% group_by(condition) %>% tally
+
+# need to import bpv_data, survey_part1, survey_part3 and stroop_data next 
+# need to recode date by semester and then control for research, semester, baseline starts and ends, etc.
+
+```
+
+
+```{r looking for outliers, fig.width=12, fig.height=5}
+
+colorblock_byppt <- combined_data %>% 
+  filter(condition == "Color Block") %>% 
+  filter(segment == "A1") %>% 
+  filter(subject_id != "26") %>% 
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Color Block") +xlab("Baseline (in Minutes)") + ylab("Mean RSA") 
+
+magazines_byppt <- combined_data %>% 
+  filter(condition == "Magazines") %>% 
+  filter(segment == "A1") %>% 
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Magazines") + xlab("Baseline (in Minutes)") + ylab("Mean RSA") 
+
+music_byppt <- combined_data %>% 
+  filter(condition == "Music") %>% 
+  filter(segment == "A1") %>% 
+  filter(subject_id != "223") %>%  
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Music") + xlab("Baseline (in Minutes)") + ylab("Mean RSA") 
+
+questionnaires_byppt <- combined_data %>% 
+  filter(condition == "Questionnaires") %>% 
+  filter(segment == "A1") %>% 
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Questionnaires") + xlab("Baseline (in Minutes)") + ylab("Mean RSA")
+
+resting_byppt <- combined_data %>% 
+  filter(condition == "Resting") %>% 
+  filter(segment == "A1") %>% 
+  filter(subject_id != "302" & subject_id != "195") %>% 
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Resting") + xlab("Baseline (in Minutes)") + ylab("Mean RSA")
+
+video_byppt <- combined_data %>% 
+  filter(condition == "Video") %>% 
+  filter(segment == "A1") %>% 
+  ggplot(aes(x=segment_number, y=rmssd, group=subject_id)) + geom_line() +
+  ggtitle("Video") + xlab("Baseline (in Minutes)") + ylab("Mean RSA")
+
+plot_grid(colorblock_byppt, magazines_byppt, music_byppt, questionnaires_byppt, resting_byppt, video_byppt, cols = 3)
+
+ggplotly(colorblock_byppt) # possible issue with ppt 26
+ggplotly(magazines_byppt) # looks fine 
+ggplotly(music_byppt) # possible issue with 223
+ggplotly(questionnaires_byppt) #46 is an outlier 
+ggplotly(resting_byppt) # possible issue with 302 (major dip) and 82 (super high)
+ggplotly(video_byppt) # looks fine
+
+```
+
+```{r mean variation over the entire experiment}
+
+combined_data <- as_tibble(combined_data %>% 
+  mutate(segment = recode(segment, A1 = "Baseline", A2 = "Stressor", A3 = "Recovery 1", A4 = "Recovery 2")))
+
+colorblock_byseg <- combined_data %>% 
+  filter(condition == "Color Block") %>%
+  filter(subject_id != "26") %>% 
+  group_by(segment) %>% 
+  summarise(rmssd = mean(rmssd)) %>% 
+  mutate(condition = paste("Color Block")) %>% 
+  select(condition, segment, rmssd) 
+
+magazines_byseg <- combined_data %>% 
+  filter(condition == "Magazines") %>%
+  group_by(segment) %>% 
+  summarise(rmssd = mean(rmssd)) %>% 
+  mutate(condition = paste("Magazines")) %>% 
+  select(condition, segment, rmssd) 
+
+music_byseg <- combined_data %>% 
+  filter(condition == "Music") %>%
+  group_by(segment) %>% 
+  filter(subject_id != "223") %>% # removing ppt 61 because of potential issue
+  summarise(rmssd = mean(rmssd)) %>% 
+  mutate(condition = paste("Music")) %>% 
+  select(condition, segment, rmssd)
+
+questionnaires_byseg <- combined_data %>% 
+  filter(condition == "Questionnaires") %>%
+  group_by(segment) %>% 
+  filter(subject_id != "61" & subject_id != "46") %>% # removing ppt 61 because of potential issue
+  summarise(rmssd = mean(rmssd)) %>% 
+  mutate(condition = paste("Questionnaires")) %>% 
+  select(condition, segment, rmssd) 
+
+resting_byseg <- combined_data %>% 
+  filter(condition == "Resting") %>%
+  group_by(segment) %>% 
+  filter(subject_id != "302" & subject_id != "82") %>% # removing ppt 82 + 302 because of potential issue 
+  summarise(rmssd = mean(rmssd)) %>%
+  mutate(condition = paste("Resting")) %>% 
+  select(condition, segment, rmssd) 
+
+video_byseg <- combined_data %>% 
+  filter(condition == "Video") %>%
+  group_by(segment) %>% 
+  summarise(rmssd = mean(rmssd)) %>% 
+  mutate(condition = paste("Video")) %>% 
+  select(condition, segment, rmssd) 
+
+byseg <- bind_rows(colorblock_byseg, magazines_byseg, music_byseg, questionnaires_byseg, resting_byseg, video_byseg)  
+
+byseg_graph <- ggplot(byseg, aes(x=segment, y=rmssd, group=condition, color=condition)) + geom_line(size = 1.3) +
+  ggtitle("RMSSD Variation Over Experiment") + ylab("RMSSD") + 
+  theme(axis.title.x=element_blank()) + theme(legend.title = element_blank())
+
+ggplotly(byseg_graph)
+
+```
+
+
+
+

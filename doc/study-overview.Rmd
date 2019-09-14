@@ -1,0 +1,45 @@
+---
+title: "Study Overview"
+author: "Brandon L. Kramer"
+date: "9/14/2019"
+output: html_document
+---
+
+## Purpose/ Objective
+
+First, we want to determine the best “resting state” method to ensure that participants are at their baseline levels of heart rate, respiratory activity, and blood pressure before starting psychophysiological experiments. Almost all research that collects physiological data underscores the critical importance of making sure that participants are relaxed enough to obtain “resting state” measures before proceeding with the study. However, there has yet to be a systematic investigation of which baseline(s) are most effective.  Therefore, we will randomly assign participants to a 10 minute standard baseline task (e.g., reading neutral magazines, watching a neutral movie, counting colored squares, answering questionnaires, resting quietly, viewing neutral pictures) to see how low their blood pressure, respiratory activity, and heart rate are after the baseline task. The results of this aspect of the study will help validate experimental baseline methods in physiological research. We also include a well-established task (the Stroop task) following the baseline time to measure small increases in physiological arousal (i.e. stress). This will allow us to make our test of baselines as close to other studies of stress employing baseline procedures as possible. If we did not include a stress task our measurement of resting potential would be invalid because no anticipatory arousal associated with an upcoming stress task would be present in participants. 
+
+## Exclusion Criteria
+
+Participants must be between the ages of 18-25 and currently enrolled in an introductory psychology course.  Participants who self-report any history of heart problems or blood pressure problems (e.g. high blood pressure, low blood pressure) will be excluded. Participants with high blood pressure values (systolic average <160 and/ or diastolic <105) during the visit will be excluded. Any participant who reports having significant psychiatric conditions, active drug abuse, significant known cardiovascular disease, or reports taking medications for heart related conditions (e.g. blood thinners), blood pressure regulation (e.g. anti-hypertensive) or drugs known to affect the cardiovascular system (e.g. tranquilizers, stimulants) will also be excluded. In addition, participants who are likely to experience severe bruising because of a medical condition or the use of blood thinning agent will be excluded. Finally, pregnant participants will be excluded.
+
+## Data Collection Procedure
+
+Eligible participants will sign up for an appointment to complete the study using the research pool website.  Upon arrival to the lab, participants will be given an opportunity to use the bathroom before the experimental session begins.  The researcher will then give the participant an informed consent and the researcher will explain the study to each participant. The experimenter will show participants the tools that will be used to measure each response (electrodes for heart rate, finger & arm cuff for blood pressure, a waist belt for respiration). Participants will be told the study has three parts.  The first part of the study involves a 10-minute period in which heart rate, blood pressure and respiration will be recorded. Next, they will be told the second part of the study involves completing a test of cognitive ability under stress. We must include the stress measure in order for our baseline measures to be valid and comparable to other studies involving baselines.  Studies on stress involve a baseline in order to give participants’ equal time to reach a restful state regardless of how they come in (e.g. in an already relaxed state after meditating or in a stressed state after a midterm).  A baseline is meant to bring all participants to the same or similar levels of relaxation.  Telling participants they will complete a stress task, however, causes them to experience anticipatory stress even during their baseline task.  We must include a stress task to make our study of baselines as close to other studies of stress response as possible.  Finally, the third part of the study will involve completing questionnaires that include questions about the study procedures, demographics, stress, preferences (e.g. enjoys abstract thought tasks), psychological functioning (e.g. depression, anxiety, rumination), personality traits, current illness, current mood and daily habits (e.g. caffeine consumption, sleep and meditation.  After describing the procedure the researcher will go over the informed consent with the participant to ensure they understand the form.  The informed consent includes a brief set of “yes/ no/ decline to answer” questions to address the exclusionary criteria stated in 1d.  Participants will be asked to indicate whether or not they meet any exclusionary criteria which would preclude them from participating. If participants meet exclusionary criteria they will be excluded from the study and compensated for their time in the form of RPU credits (see 4a).
+
+If consent is obtained participants will be connected to the blood pressure, heart rate and respiration equipment following which they will answer one question about their current stress level. Next, they will complete a well-established, common, randomly assigned 10-minute relaxing task, which attempts to bring their blood pressure, respiration, and heart rate down to a relaxed, normal state. Examples of relaxing tasks include: resting quietly, counting colored squares, reading neutral magazines, listening to classical music, watching a neutral video, watching a slideshow of bland images (e.g. broom or coat hook) or answering a set of questionnaires. During this baseline period, blood pressure will be checked to ensure participants are excluded if they are not below the maximum acceptable blood pressure level (see 1d). One of the baseline conditions involves answering questionnaires.  Participants assigned to this condition will complete the questionnaires involved in part 3 (excluding questions asking about the baseline task) and a number of filler questionnaires (denoted as filler questionnaires in attachment 7). The survey for participants in the baseline condition is not meant to be finished; we include a survey that cannot be finished in 10 minutes to ensure everyone does a baseline task for the same amount of time (10 minutes). The questionnaires for participants in the baseline condition will time out after 10 minutes. Participants will answer an additional question assessing their current level of stress at the end of the baseline task. 
+
+After the baseline procedure participants will complete a test of executive functioning called the Stroop task to assess cognitive load. The Stroop task measures reaction time in identifying the color of a written word (e.g. the word blue is written in red ink, participants must respond with red) or reading the name of a color written in a different color (e.g. the word yellow is written in blue ink, participants must respond with yellow). 
+
+Following the Stroop task participants will complete questionnaires that include questions about the study procedures, demographics, stress, preferences (e.g. enjoys abstract thought tasks), psychological functioning (e.g. depression, anxiety, rumination), personality traits, current illness, current mood and daily habits (e.g. caffeine consumption, sleep and meditation. As previously stated participants in the questionnaire baseline condition will only complete questions related to the baseline task; they will not answer the same set of questionnaires twice. When the questionnaires are completed participants will be disconnected from heart rate, blood pressure and respiration equipment and dismissed.   Research credits will be assigned manually at least once every two weeks.
+
+## Analyses
+
+All analyses will follow standard well-established analytic routines for each aspect of the study (e.g. using Acknowledge software for blood pressure, respiratory activity, and heart rate analyses; Stata for survey data, etc.).  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -12,7 +12,7 @@ The first step is concatenating all of the data and reducing the dimensions to c
 ```{r setup, include=FALSE}
 rm(list = ls())
 #setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline-and-resilience/data")
-setwd("~/Documents/Baseline/baseline-and-stress/data")
+setwd("~/Documents/Baseline/data")
 library(tidyverse); library(cowplot); library(plotly)
 meta_data <- read.csv("BL_ComputerLogs_091419.csv") %>% select(-1) %>% arrange(subject_id) %>% drop_na()
 hrv_data <- read.csv("BL_CompiledHRVData_091419.csv") %>% select(-1) %>% arrange(subject_id) %>% drop_na()

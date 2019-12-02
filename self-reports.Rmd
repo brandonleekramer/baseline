@@ -1,6 +1,7 @@
 ---
-title: "Baseline Study: Survey Results"
+title: 'Baseline Study: Summary Statistics'
 author: "Brandon L. Kramer"
+date: "12/1/2019"
 output: html_document
 ---
 
@@ -8,11 +9,9 @@ output: html_document
 rm(list = ls())
 #setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline-and-resilience/data")
 setwd("~/Documents/Baseline/data")
-for (pkg in c("tidyverse", "cowplot", "maditr", "plotly", 
+for (pkg in c("tidyverse", "cowplot", "maditr", "plotly", "infer",
               "psych", "ggpubr", "grid", "gridExtra")) {library(pkg, character.only = TRUE)}
-SurveyData <- read_csv("baseline_survey.csv") 
-RALogs <- read.csv("baseline_ra_logs.csv")
-AllData <- right_join(SurveyData, RALogs, by = c("HeartID")); rm(SurveyData, RALogs)
+AllData <- read_csv("joined_baseline_data.csv") 
 ```
 
 ```{r counts by condition,echo=FALSE}
@@ -20,206 +19,45 @@ AllData <- right_join(SurveyData, RALogs, by = c("HeartID")); rm(SurveyData, RAL
 AllData %>% group_by(Condition) %>% count()
 ```
 
-```{r data cleaning, echo=FALSE, warning=FALSE, results=FALSE}
-DataOverview <- describe(AllData) 
-DataOverview %>% select(n,min,max,sd,range,skew,kurtosis)
-# looked through all of the variables to look for outliers, skew and kurtosis
-# notes: https://docs.google.com/spreadsheets/d/1q-utuzin_sITNXk6lZV3aM5LtdR9uDj8imqKk-qq1nA/edit#gid=179726354
-```
-
-```{r scoring scales,echo=FALSE, warning=FALSE}
-# Scoring PSS: https://das.nh.gov/wellness/Docs/Percieved%20Stress%20Scale.pdf
-PSS = c("PSS1","PSS2","PSS3","PSS4R","PSS5R","PSS6","PSS7R","PSS8R","PSS9","PSS10")
-AllData <- AllData %>% 
-  mutate(PSS1 = recode(PSS1, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>% 
-  mutate(PSS2 = recode(PSS2, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>%
-  mutate(PSS3 = recode(PSS3, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>%
-  mutate(PSS4R = recode(PSS4, `1`=4, `2`=3, `3`=2, `4`=1, `5`=0)) %>% 
-  mutate(PSS5R = recode(PSS5, `1`=4, `2`=3, `3`=2, `4`=1, `5`=0)) %>%
-  mutate(PSS6 = recode(PSS6, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>%
-  mutate(PSS7R = recode(PSS7, `1`=4, `2`=3, `3`=2, `4`=1, `5`=0)) %>%
-  mutate(PSS8R = recode(PSS8, `1`=4, `2`=3, `3`=2, `4`=1, `5`=0)) %>%
-  mutate(PSS9 = recode(PSS9, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>%
-  mutate(PSS10 = recode(PSS10, `1`=0, `2`=1, `3`=2, `4`=3, `5`=4)) %>%
-  rowwise() %>% nest(PSS) %>%                  
-  mutate(PSS_SUM = map_dbl(data, sum)); rm(PSS)
-describe(AllData$PSS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis) 
-```
-```{r panas,echo=FALSE, warning=FALSE}
-# Scoring PANAS: https://ogg.osu.edu/media/documents/MB%20Stream/PANAS.pdf
-PANAS_Pos <- AllData %>% 
-  select(PANAS1,PANAS3,PANAS5,PANAS9,PANAS10,PANAS12,PANAS14,PANAS16,PANAS17,PANAS19) %>% 
-  mutate(PANAS_Pos=rowSums(.)) %>% select(PANAS_Pos)  
-PANAS_Neg <- AllData %>% 
-  select(PANAS2,PANAS4,PANAS6,PANAS7,PANAS8,PANAS11,PANAS13,PANAS15,PANAS18,PANAS20) %>% 
-  mutate(PANAS_Neg=rowSums(.)) %>% select(PANAS_Neg)  
-AllData <- AllData %>% bind_cols(PANAS_Pos, PANAS_Neg); rm(PANAS_Pos, PANAS_Neg)
-Pos<-describe(AllData$PANAS_Pos) %>% select(n,mean,sd,min,max,skew,kurtosis)
-Neg<-describe(AllData$PANAS_Neg) %>% select(n,mean,sd,min,max,skew,kurtosis)
-Pos %>% bind_rows(Neg); rm(Pos, Neg)
-```
-```{r ces-d,echo=FALSE, warning=FALSE}
-# Scoring CES-D: https://outcometracker.org/library/CES-D.pdf
-AllData <- AllData %>% 
-  mutate(CESD1 = recode(CESD1, `1`=0, `2`=1, `3`=2, `4`=3)) %>% 
-  mutate(CESD2 = recode(CESD2, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD3 = recode(CESD3, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD4R = recode(CESD4, `1`=3, `2`=2, `3`=1, `4`=0)) %>% 
-  mutate(CESD5 = recode(CESD5, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD6 = recode(CESD6, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD7 = recode(CESD7, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD8R = recode(CESD8, `1`=3, `2`=2, `3`=1, `4`=0)) %>%
-  mutate(CESD9 = recode(CESD9, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD10 = recode(CESD10, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD11 = recode(CESD11, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD12R = recode(CESD12, `1`=3, `2`=2, `3`=1, `4`=0)) %>%
-  mutate(CESD13 = recode(CESD13, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD14 = recode(CESD14, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD15 = recode(CESD15, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD16R = recode(CESD16, `1`=3, `2`=2, `3`=1, `4`=0)) %>% 
-  mutate(CESD17 = recode(CESD17, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD18 = recode(CESD18, `1`=0, `2`=1, `3`=2, `4`=3)) %>%
-  mutate(CESD19 = recode(CESD19, `1`=0, `2`=1, `3`=2, `4`=3)) 
-CESD_SUM <- AllData %>% 
-  select(CESD1,CESD2,CESD3,CESD4R,CESD5,CESD6,CESD7,CESD8R,CESD9,CESD10,
-         CESD11,CESD12R,CESD13,CESD14,CESD15,CESD16R,CESD17,CESD18,CESD19,CESD20) %>% 
-  mutate(CESD_SUM=rowSums(.)) %>% select(CESD_SUM) 
-AllData <- AllData %>% bind_cols(CESD_SUM); rm(CESD_SUM)
-describe(AllData$CESD_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis) 
-```
-```{r rrs,echo=FALSE, warning=FALSE}
-# Scoring RRS: http://www-personal.umich.edu/~gonzo/RuminationScale.pdf
-RRS_SUM <- AllData %>% 
-  select(RRS1,RRS2,RRS3,RRS4,RRS5,RRS6,RRS7,RRS8,RRS9,RRS10,RRS11,
-         RRS12,RRS13,RRS14,RRS15,RRS16,RRS17,RRS18,RRS19,RRS20) %>% 
-  mutate(RRS_SUM=rowSums(.)) %>% select(RRS_SUM)
-AllData <- AllData %>% bind_cols(RRS_SUM); rm(RRS_SUM)
-describe(AllData$RRS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis) 
-```
-```{r nfcs,echo=FALSE, warning=FALSE}
-# Scoring Need for Cognition: http://www.midss.org/sites/default/files/ncogscale.pdf
-AllData <- AllData %>% 
-  mutate(NFCS3R = recode(NFCS3, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS4R = recode(NFCS4, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS5R = recode(NFCS5, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS7R = recode(NFCS7, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS8R = recode(NFCS8, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS9R = recode(NFCS9, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS12R = recode(NFCS12, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS16R = recode(NFCS16, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(NFCS17R = recode(NFCS17, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) 
-NFCS_SUM <- AllData %>% 
-  select(NFCS1,NFCS2,NFCS3R,NFCS4R,NFCS5R,NFCS6,NFCS7R,NFCS8R,NFCS9R,
-         NFCS10,NFCS11,NFCS12R,NFCS13,NFCS14,NFCS15,NFCS16R,NFCS17R,NFCS18) %>% 
-  mutate(NFCS_SUM=rowSums(.)) %>% select(NFCS_SUM) 
-AllData <- AllData %>% bind_cols(NFCS_SUM); rm(NFCS_SUM)
-describe(AllData$NFCS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis)
-```
-```{r big five,echo=FALSE, warning=FALSE}
-# Scoring Big Five: https://fetzer.org/sites/default/files/images/stories/pdf/selfmeasures/Personality-BigFiveInventory.pdf
-AllData <- AllData %>% 
-  mutate(BigFive6R = recode(BigFive6, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive21R = recode(BigFive21, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>% 
-  mutate(BigFive31R = recode(BigFive31, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive2R = recode(BigFive2, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive12R = recode(BigFive12, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive27R = recode(BigFive27, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive37R = recode(BigFive37, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive8R = recode(BigFive8, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive18R = recode(BigFive18, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive23R = recode(BigFive23, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive43R = recode(BigFive43, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive9R = recode(BigFive9, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive24R = recode(BigFive24, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive34R = recode(BigFive34, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive35R = recode(BigFive35, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) %>%
-  mutate(BigFive41R = recode(BigFive41, `1`=5, `2`=4, `3`=3, `4`=2, `5`=1)) 
-Extraversion <- AllData %>% 
-  select(BigFive1,BigFive6R,BigFive11,BigFive16,
-         BigFive21R,BigFive26,BigFive31R,BigFive36) %>%
-  mutate(Extraversion=rowSums(.)) %>% select(Extraversion)
-Agreeableness <- AllData %>% 
-  select(BigFive2R,BigFive7,BigFive12R,BigFive17,BigFive22,
-         BigFive27R,BigFive32,BigFive37R,BigFive42) %>%
-  mutate(Agreeableness=rowSums(.)) %>% select(Agreeableness)
-Conscientiousness <- AllData %>% 
-  select(BigFive3,BigFive8R,BigFive13,BigFive18R,BigFive23R,
-         BigFive28,BigFive33,BigFive38,BigFive43R) %>%
-  mutate(Conscientiousness=rowSums(.)) %>% select(Conscientiousness)
-Neuroticism <- AllData %>% 
-  select(BigFive1,BigFive6R,BigFive11,BigFive16,
-         BigFive21R,BigFive26,BigFive31R,BigFive36) %>%
-  mutate(Neuroticism=rowSums(.)) %>% select(Neuroticism)
-Openness <- AllData %>% 
-  select(BigFive5,BigFive10,BigFive15,BigFive20,BigFive25,
-         BigFive30,BigFive35R,BigFive40,BigFive41R,BigFive44) %>%
-  mutate(Openness=rowSums(.)) %>% select(Openness)
-AllData <- AllData %>% 
-  bind_cols(Extraversion,Agreeableness,Conscientiousness,Neuroticism,Openness)
-rm(Extraversion,Agreeableness,Conscientiousness,Neuroticism,Openness)
-e<-describe(AllData$Extraversion) %>% select(n,mean,sd,min,max,skew,kurtosis)
-a<-describe(AllData$Agreeableness) %>% select(n,mean,sd,min,max,skew,kurtosis)
-c<-describe(AllData$Conscientiousness) %>% select(n,mean,sd,min,max,skew,kurtosis)
-n<-describe(AllData$Neuroticism) %>% select(n,mean,sd,min,max,skew,kurtosis)
-o<-describe(AllData$Openness) %>% select(n,mean,sd,min,max,skew,kurtosis)
-e %>% bind_rows(a,c,n,o); rm(e,a,c,n,o)
-```
-```{r stai,echo=FALSE, warning=FALSE}
-# Scoring Trait Anxiety: http://www.mhshelps.com/download/State%20Trait%20Anxiety%20Inventory%20Sampler%20Set%20Instrument%20and%20Scoring%20Guide.pdf
-# The scoring weights for the anxiety-absent items are reversed (1,3,6,7,10,13,14,16,19)
-AllData <- AllData %>% 
-  mutate(STAI1R = recode(STAI1, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI3R = recode(STAI3, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI6R = recode(STAI6, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI7R = recode(STAI7, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI10R = recode(STAI10, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI13R = recode(STAI13, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI14R = recode(STAI14, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI16R = recode(STAI16, `1`=4, `2`=3, `3`=2, `4`=1)) %>%
-  mutate(STAI19R = recode(STAI19, `1`=4, `2`=3, `3`=2, `4`=1)) 
-TraitAnxiety <- AllData %>% 
-  select(STAI1R,STAI2,STAI3R,STAI4,STAI5,STAI6R,STAI7R,STAI8,STAI9,STAI10R,
-         STAI11,STAI12,STAI13R,STAI14R,STAI15,STAI16R,STAI17,STAI18,STAI19R,STAI20) %>% 
-  mutate(TraitAnxiety=rowSums(.)) %>% select(TraitAnxiety) 
-AllData <- AllData %>% bind_cols(TraitAnxiety); rm(TraitAnxiety)
-describe(AllData$TraitAnxiety) %>% select(n,mean,sd,min,max,skew,kurtosis)
-```
-```{r swls,echo=FALSE, warning=FALSE}
-# Scoring SWLS: https://fetzer.org/sites/default/files/images/stories/pdf/selfmeasures/SATISFACTION-SatisfactionWithLife.pdf
-SWLS_SUM <- AllData %>% 
-  select(SWLS1,SWLS2,SWLS3,SWLS4,SWLS5) %>% 
-  mutate(SWLS_SUM=rowSums(.)) %>% select(SWLS_SUM)
-AllData <- AllData %>% bind_cols(SWLS_SUM); rm(SWLS_SUM)
-describe(AllData$SWLS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis)
-```
-```{r pgis,echo=FALSE, warning=FALSE}
-# Scoring PGIS: https://ppc.sas.upenn.edu/resources/questionnaires-researchers/personal-growth-initiative-scale
-PGIS_SUM <- AllData %>% 
-  select(PGIS1,PGIS2,PGIS3,PGIS4,PGIS5,PGIS6,PGIS7,PGIS8,PGIS9) %>% 
-  mutate(PGIS_SUM=rowSums(.)) %>% select(PGIS_SUM)
-AllData <- AllData %>% bind_cols(PGIS_SUM); rm(PGIS_SUM)
-describe(AllData$PGIS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis)
-```
-
-Control for meds in physio trend analysis (n=44)
-basic demographic information (by group)
-control by ra information 
-
-```{r demographics,echo=FALSE, warning=FALSE}
+```{r gender, echo=FALSE, warning=FALSE}
 # Gender 
-AllData %>% group_by(Gender) %>% count() %>% 
-  mutate(Variable = recode(Gender, `1` = "Men", `2` = "Women", `NA` = "Not Reported")) %>% 
-  select(Variable, n) %>% rename(Total = n) 
+AllData %>% 
+  mutate(Gender = recode(Gender, `1` = "Men", `2` = "Women")) %>% 
+  group_by(Gender) %>% count() %>% drop_na() %>% rename(Total = n) 
 
-# Age                                                  
-AllData %>% group_by(Age) %>% count() %>% 
-  mutate(Variable = recode(Age, `1` = "18", `2` = "19", `3` = "20",
-         `4` = "21", `5` = "22", `6` = "23", `7` = "24")) %>% 
-  select(Variable, n) %>% rename(Total = n)  
+# Gender by Condition
+AllData %>% 
+  mutate(Gender = recode(Gender, `1` = "Men", `2` = "Women")) %>% 
+  group_by(Condition) %>% count(Gender) %>% drop_na() %>% rename(Total = n)
 
+# No difference in Gender by Condition 
+summary(aov(Gender ~ Condition, data=AllData))
 ```
 
-```{r cor_matrices condition feelings,echo=FALSE, warning=FALSE}
+```{r age, echo=FALSE, warning=FALSE}
+# Age                                                  
+AllData %>% 
+  mutate(Age = recode(Age, `1` = "18", `2` = "19", `3` = "20-24",
+         `4` = "20-24", `5` = "20-24", `6` = "20-24", `7` = "20-24")) %>% 
+  group_by(Age) %>% count() %>% drop_na() %>% rename(Total = n)  
+
+# Age by Condition
+AllData %>% 
+  mutate(Age = recode(Age, `1` = "18", `2` = "19", `3` = "20-24",
+         `4` = "20-24", `5` = "20-24", `6` = "20-24", `7` = "20-24")) %>% 
+  group_by(Condition) %>% count(Age) %>% drop_na() %>% rename(Total = n) 
+
+# No difference in Gender by Condition (No matter how its coded)
+summary(aov(Age ~ Condition, data=AllData))
+
+AllData <- AllData %>% 
+  mutate(AgeRecode = recode(Age, `1` = 1, `2` = 2, `3` = 3,
+         `4` = 3, `5` = 3, `6` = 3, `7` = 3)) 
+
+summary(aov(AgeRecode ~ Condition, data=AllData))
+```
+
+```{r cor_matrices condition feelings,echo=FALSE, warning=FALSE, fig.width=9.5}
 SelectData <- AllData %>%
   rename(Enjoyable = ConditionEnjoyable,Comforting = ConditionComforting,
          Calming = ConditionCalming,Relaxing = ConditionRelaxing,
@@ -233,7 +71,73 @@ ConditionFeelings <- SelectData %>%
   select(Enjoyable,Comforting,Calming,Relaxing,Interesting,Engaging,Provoking,Demanding,
          Tiresome,Tedious,Stressful,Frustrating,Annoying,Irritating,Boring) %>% drop_na()
 ConditionMatrix <- cor(ConditionFeelings)
-round(ConditionMatrix, 2)
+(ConditionMatrix <- round(ConditionMatrix, 2))
+#write.csv(ConditionMatrix, "Baseline_Feelings_Matrix.csv")
+```
+
+```{r cor_matrices composites,echo=FALSE, warning=FALSE, fig.width=9.5}
+SelectData <- AllData %>%
+  rename(PSS=PSS_SUM,CESD=CESD_SUM,RRS=RRS_SUM,
+         NFCS=NFCS_SUM,SWLS=SWLS_SUM,PGIS=PGIS_SUM) 
+AllComposites <- SelectData %>%
+  select(PSS,CESD,TraitAnxiety,PANAS_Neg,PANAS_Pos,SWLS,PGIS,NFCS,
+         Extraversion,Agreeableness,Conscientiousness,Openness,Neuroticism) %>% drop_na()
+CompositesMatrix <- cor(AllComposites)
+(FinalCompositesMatrix <- round(CompositesMatrix, 2))
+#write.csv(FinalCompositesMatrix, "Baseline_Composites_Matrix.csv")
+```
+
+```{r anovas stress, echo=FALSE, warning=FALSE, fig.width=9.5}
+# PreBaselineStress
+summary(aov(PreBaselineStress ~ Condition, data=AllData))
+# PostBaselineStress
+summary(aov(PostBaselineStress ~ Condition, data=AllData))
+# No differences 
+```
+
+```{r anova enjoyable}
+# "Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"
+
+# Feelings by Condition 
+summary(aov(ConditionEnjoyable ~ Condition, data=AllData)) # ***
+ggline(AllData, x = "Condition", y = "ConditionEnjoyable", 
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Enjoyable", color = "darkgreen") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+
+Resting_Music <- AllData %>%
+  filter(Condition == "Resting" | Condition == "Music") %>%  
+  mutate(Condition = factor(Condition))
+
+ColorBlock_Magaizines <- AllData %>%
+  filter(Condition == "Color Block" | Condition == "Magazines") %>%  
+  mutate(Condition = factor(Condition))
+
+t.test(Resting_Music$ConditionEnjoyable ~ Resting_Music$Condition, var.equal=TRUE)
+
+# Not Finished; Need to finish this up for all of the variables in the next section (12/2/19)
+
+```
+
+```{r}
+summary(aov(ConditionEnjoyable ~ Condition, data=AllData)) # ***
+summary(aov(ConditionCalming ~ Condition, data=AllData)) # ***
+summary(aov(ConditionComforting ~ Condition, data=AllData)) # ***
+summary(aov(ConditionEngaging ~ Condition, data=AllData)) # ***
+summary(aov(ConditionInteresting ~ Condition, data=AllData)) # ***
+summary(aov(ConditionProvoking ~ Condition, data=AllData)) # *
+summary(aov(ConditionBoring ~ Condition, data=AllData)) # ***
+summary(aov(ConditionAnnoying ~ Condition, data=AllData)) # ***
+summary(aov(ConditionStressful ~ Condition, data=AllData)) # ***
+summary(aov(ConditionTedious ~ Condition, data=AllData)) # ***
+summary(aov(ConditionTiresome ~ Condition, data=AllData)) # ***
+summary(aov(ConditionDemanding ~ Condition, data=AllData)) # ***
+summary(aov(ConditionIrritating ~ Condition, data=AllData)) # ***
+
 ```
 
 ```{r self-reports on baseline tasks,echo=FALSE, warning=FALSE, fig.width=9.5}
@@ -249,117 +153,160 @@ AllData %>% group_by(Condition) %>%
 # outcomes on 5-point likert from strongly disagree to strongly agree 
 
 # self-reported stress before baseline 
-summary(aov(PreBaselineStress ~ Condition, data=AllData))
 pre_stress <- ggline(AllData, x = "Condition", y = "PreBaselineStress", 
        add = c("mean_se"), 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       ylab = "Post-Baseline Stress") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       ylab = "Pre-Baseline Stress") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
 # self-reported stress after baseline 
-summary(aov(PostBaselineStress ~ Condition, data=AllData))
+#summary(aov(PostBaselineStress ~ Condition, data=AllData))
 post_stress <- ggline(AllData, x = "Condition", y = "PostBaselineStress", 
        add = c("mean_se"), 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       ylab = "Post-Baseline Stress") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       ylab = "Post-Baseline Stress") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
 # outcomes we probably want to have higher means
-summary(aov(ConditionEnjoyable ~ Condition, data=AllData))
+#summary(aov(ConditionEnjoyable ~ Condition, data=AllData))
 enjoyable <- ggline(AllData, x = "Condition", y = "ConditionEnjoyable", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Enjoyable", color = "darkgreen") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Enjoyable", color = "darkgreen") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionCalming ~ Condition, data=AllData))
+#summary(aov(ConditionCalming ~ Condition, data=AllData))
 calming <- ggline(AllData, x = "Condition", y = "ConditionCalming", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Calming", color = "darkgreen") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Calming", color = "darkgreen") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionComforting ~ Condition, data=AllData))
+#summary(aov(ConditionComforting ~ Condition, data=AllData))
 comforting <- ggline(AllData, x = "Condition", y = "ConditionComforting", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Comforting", color = "darkgreen") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Comforting", color = "darkgreen") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
 # outcomes that could go either way 
-summary(aov(ConditionEngaging ~ Condition, data=AllData))
+#summary(aov(ConditionEngaging ~ Condition, data=AllData))
 engaging <- ggline(AllData, x = "Condition", y = "ConditionEngaging", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Engaging", color = "blue") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Engaging", color = "blue") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionInteresting ~ Condition, data=AllData))
+#summary(aov(ConditionInteresting ~ Condition, data=AllData))
 interesting <- ggline(AllData, x = "Condition", y = "ConditionInteresting", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Interesting", color = "blue") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Interesting", color = "blue") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionProvoking ~ Condition, data=AllData))
+#summary(aov(ConditionProvoking ~ Condition, data=AllData))
 provoking <- ggline(AllData, x = "Condition", y = "ConditionProvoking", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Thought-Provoking", color = "blue") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Thought-Provoking", color = "blue") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionBoring ~ Condition, data=AllData))
+#summary(aov(ConditionBoring ~ Condition, data=AllData))
 boring <- ggline(AllData, x = "Condition", y = "ConditionBoring", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Boring") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Boring") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
 # outcomes we probably want to have lower means
-summary(aov(ConditionAnnoying ~ Condition, data=AllData))
+# summary(aov(ConditionAnnoying ~ Condition, data=AllData))
 annoying <- ggline(AllData, x = "Condition", y = "ConditionAnnoying", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Annoying", color = "red") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", "Resting", 
+                 "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Annoying", color = "red") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionStressful ~ Condition, data=AllData))
+#summary(aov(ConditionStressful ~ Condition, data=AllData))
 stressful <- ggline(AllData, x = "Condition", y = "ConditionStressful", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Stressful", color = "red") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Stressful", color = "red") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionTedious ~ Condition, data=AllData))
+#summary(aov(ConditionTedious ~ Condition, data=AllData))
 tedious <- ggline(AllData, x = "Condition", y = "ConditionTedious", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Tedious", color = "red") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", 
+                 "Resting", "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Tedious", color = "red") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionTiresome ~ Condition, data=AllData))
+#summary(aov(ConditionTiresome ~ Condition, data=AllData))
 tiresome <- ggline(AllData, x = "Condition", y = "ConditionTiresome", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Tiresome", color = "red") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", "Resting", 
+                 "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Tiresome", color = "red") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionDemanding ~ Condition, data=AllData))
+#summary(aov(ConditionDemanding ~ Condition, data=AllData))
 demanding <- ggline(AllData, x = "Condition", y = "ConditionDemanding", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
-       add = c("mean_se"), ylab = "Demanding", color = "red") + theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+       order = c("Color Block", "Questionnaires", "Resting", 
+                 "Music", "Video", "Magazines"),
+       add = c("mean_se"), ylab = "Demanding", color = "red") + 
+  theme(axis.title.x = element_blank()) +
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R", "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
-summary(aov(ConditionIrritating ~ Condition, data=AllData))
+#summary(aov(ConditionIrritating ~ Condition, data=AllData))
 irritating <- ggline(AllData, x = "Condition", y = "ConditionIrritating", 
-       order = c("Color Block", "Questionnaires", "Resting", "Music", "Video", "Magazines"),
+       order = c("Color Block", "Questionnaires", "Resting", 
+                 "Music", "Video", "Magazines"),
        add = c("mean_se"), ylab = "Irritating", color = "red") + 
   theme(axis.title.x = element_blank()) +
-  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", "Resting" = "R", 
-                            "Music" = "Mu", "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
+  scale_x_discrete(labels=c("Color Block" = "CB", "Questionnaires" = "Q", 
+                            "Resting" = "R",  "Music" = "Mu", 
+                            "Video" = "V", "Magazines" = "Mg")) + ylim(0, 5)
 
 grid.arrange(pre_stress, enjoyable, interesting, annoying, tedious, 
              post_stress, calming, engaging, stressful, tiresome, 
@@ -368,12 +315,19 @@ grid.arrange(pre_stress, enjoyable, interesting, annoying, tedious,
 
 ```
 
+
+
+
+Control for meds in physio trend analysis (n=44)
+control by ra information 
+
 ```{r working with zipcodes,include=FALSE}
 AllData$ZipCode <- str_pad(AllData$ZipCode, pad="0", side="left", width=5)
 AllData %>% select(ZipCode)
 ```
 
+
+
 ## References 
 
 http://www.sthda.com/english/wiki/one-way-anova-test-in-r
-

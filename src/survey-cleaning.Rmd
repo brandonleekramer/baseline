@@ -213,7 +213,7 @@ describe(AllData$PGIS_SUM) %>% select(n,mean,sd,min,max,skew,kurtosis)
 ```
 
 ```{r output new combined data}
-write.csv(AllData, "joined_baseline_data.csv")
+write.csv(AllData, "baseline_joined_data.csv")
 ```
 
 

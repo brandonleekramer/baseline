@@ -1,0 +1,367 @@
+---
+title: "Baseline & Stress: Heart Rate"
+author: "Brandon L. Kramer, et al."
+output: html_document
+---
+
+This study, entited *Baseline & Stress*, was designed (1) to determine the best “resting state” method to ensure that participants are at their baseline levels of heart rate, respiratory activity, and blood pressure before starting psychophysiological experiments and (2) to examine how individuals respond to well-estbalish laboratory stressor called the Stroop task. For a more comprehensive overview, see the Study Overview and IRB proposals in the docs folder. 
+
+The first step is concatenating all of the data and reducing the dimensions to carry out a comparison of best baselines tests and to examine the physiological reactivity of participants in the study. Given the complex nature of psychophysiological research 
+
+```{r setup, include=FALSE}
+rm(list = ls())
+setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline/data")
+for (pkg in c("tidyverse", "cowplot", "plotly", "infer", "psych", "ggpubr", "grid", 
+              "rcompanion", "nlme", "lme4", "lmerTest", "car", "multcompView", 
+              "lsmeans", "gridExtra", "arse", "rstanarm", "bayestestR")) {library(pkg, character.only = TRUE)}
+all_data <- read_csv("baseline_joined_data.csv") 
+phys_data <- read.csv("baseline_physdata_091419.csv") %>% select(-1) %>% arrange(SubjectID) %>% drop_na()
+```
+
+```{r importing data, warning=FALSE}
+
+combined_data <- all_data %>% 
+  inner_join(phys_data, by = "SubjectID") %>% 
+  select(SubjectID, HeartID, Condition, Semester, AppointmentTime, Segment, SegmentNumber, 
+         MeanHeartRate, RSA, RMSSD, MeanIBI, RspRate, InitialSBP, InitialDBP, 
+         BaselineStart, BaselineEnd, StroopStart, StroopEnd, PreBaselineStress, PostBaselineStress, 
+         WorkStation, CNAPLabel, MP150Label, FingerCuffLabel, FingerCuffSize, ArmCuffLabel, ArmCuffSize, ECGLabel) %>% 
+  mutate(Segment = dplyr::recode(Segment, A1 = "Baseline", A2 = "Stressor", A3 = "Recovery 1", A4 = "Recovery 2"))
+
+
+all_data %>% group_by(Condition) %>% tally
+all_data %>% group_by(AppointmentTime) %>% tally()
+all_data %>% group_by(Semester) %>% tally()
+
+# need to import bpv_data, survey_part1, survey_part3 and stroop_data next 
+# need to recode date by semester and then control for research, semester, baseline starts and ends, etc.
+
+```
+
+
+```{r baseline variation in MeanHeartRate by participant, fig.width=9.5, fig.height=5}
+
+colorblock_byppt <- combined_data %>% 
+  filter(Condition == "Color Block") %>% 
+  filter(SubjectID != "26") %>% # removing ppt 26 because of potential issues
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Color Block") +xlab("Baseline (in Minutes)") + ylab("Mean HR") 
+
+magazines_byppt <- combined_data %>% 
+  filter(Condition == "Magazines") %>% 
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Magazines") + xlab("Baseline (in Minutes)") + ylab("Mean HR") 
+
+music_byppt <- combined_data %>% 
+  filter(Condition == "Music") %>% 
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Music") + xlab("Baseline (in Minutes)") + ylab("Mean HR") 
+
+questionnaires_byppt <- combined_data %>% 
+  filter(Condition == "Questionnaires") %>% 
+  filter(SubjectID != "61") %>% # removing ppt 61 because of potential issues
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Questionnaires") + xlab("Baseline (in Minutes)") + ylab("Mean HR")
+
+resting_byppt <- combined_data %>% 
+  filter(Condition == "Resting") %>% 
+  filter(SubjectID != "302") %>% # removing ppt 302 because of potential issues
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Resting") + xlab("Baseline (in Minutes)") + ylab("Mean HR")
+
+video_byppt <- combined_data %>% 
+  filter(Condition == "Video") %>% 
+  filter(Segment == "Baseline") %>% 
+  ggplot(aes(x=SegmentNumber, y=MeanHeartRate, group=SubjectID)) + geom_line() +
+  ggtitle("Video") + xlab("Baseline (in Minutes)") + ylab("Mean HR")
+
+plot_grid(colorblock_byppt, magazines_byppt, music_byppt, questionnaires_byppt, resting_byppt, video_byppt, cols = 3)
+
+ggplotly(colorblock_byppt) # possible issue with ppt 26
+ggplotly(magazines_byppt) # looks fine 
+ggplotly(music_byppt) # looks fine
+ggplotly(questionnaires_byppt) # possible outlier on high side (ppt 61)
+ggplotly(resting_byppt) # possible issue with 302 (major dip)
+ggplotly(video_byppt) # looks fine
+
+```
+
+After visual inspection, it seems that there may be some potential outliers, including: 
+
+- Color Block: Participant 26 (Segments 8-10)
+- Questionnaires: Participant 4, 61 & 130 (Potential outliers)
+- Resting: Participant 82 (Potential outlier) & Participant 302 (Segment 5) 
+
+First, let's check if these outliers are actually outliers or not. The norm in psych seems to be exclude based on those outside of the +/-3 SDs. In past projects, we have done this on the overall baseline period, but I want to be a little more conservative with this project and check each minute. 
+
+```{r}
+
+descriptives <- describe(combined_data$MeanHeartRate)
+descriptives$mean + (3 * descriptives$sd) # 108.0137
+descriptives$mean - (3 * descriptives$sd) # 47.36618
+
+```
+
+Participant 61 is the only one that is consistently outside of the +/-3 SDs so we will remove them. I've also identified some issues with participants that 26 & 302 that are almost undoutedly HR cleaning errors in Mindware. Ideally, we will go back to check whether these data were due to coding problems in the HRV data rather than tossing these out. However, that hardware is in New Jersey so Brandon will have to do this when he gets access to the Mindware software again.
+
+```{r mean variation over baseline, fig.width=9.5, fig.height=5}
+
+colorblock_mbl <- combined_data %>% 
+  filter(Condition == "Color Block") %>% 
+  filter(Segment == "Baseline") %>% 
+  filter(SubjectID != "26") %>%  # removing ppt 26 because of potential issue 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Color Block")) 
+  
+magazines_mbl <- combined_data %>% 
+  filter(Condition == "Magazines") %>% 
+  filter(Segment == "Baseline") %>% 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Magazines"))
+
+music_mbl <- combined_data %>% 
+  filter(Condition == "Music") %>% 
+  filter(Segment == "Baseline") %>% 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Music"))
+
+questionnaires_mbl <- combined_data %>% 
+  filter(Condition == "Questionnaires") %>% 
+  filter(Segment == "Baseline") %>% 
+  filter(SubjectID != "61") %>% # removing ppt 61 because of potential issue 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Questionnaires"))
+
+resting_mbl <- combined_data %>% 
+  filter(Condition == "Resting") %>% 
+  filter(Segment == "Baseline") %>% 
+  filter(SubjectID != "302" ) %>%  # removing ppt 82 + 302 because of potential issue 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Resting"))
+
+video_mbl <- combined_data %>% 
+  filter(Condition == "Video") %>% 
+  filter(Segment == "Baseline") %>% 
+  group_by(SegmentNumber) %>% 
+  summarise(heart_rate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Video"))
+
+mbl <- bind_rows(colorblock_mbl, magazines_mbl, music_mbl, questionnaires_mbl, resting_mbl, video_mbl)  
+
+mbl_graph <- ggplot(mbl, aes(x=SegmentNumber, y=heart_rate, group=Condition, color=Condition)) + geom_line(size = 1.3) +
+  ggtitle("Mean Heart Rate Variation") + ylab("Mean Heart Rate") + xlab("Baseline (in Minutes)") + theme(legend.title = element_blank())
+
+ggplotly(mbl_graph)
+
+```
+
+```{r mean variation over the entire experiment, fig.width=9.5, fig.height=5}
+
+colorblock_byseg <- combined_data %>% 
+  filter(Condition == "Color Block") %>%
+  filter(SubjectID != "26") %>%  # removing ppt 26 because of potential issue
+  group_by(Segment) %>% 
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Color Block")) %>% 
+  select(Condition, Segment, MeanHeartRate) 
+
+magazines_byseg <- combined_data %>% 
+  filter(Condition == "Magazines") %>%
+  group_by(Segment) %>% 
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Magazines")) %>% 
+  select(Condition, Segment, MeanHeartRate) 
+
+music_byseg <- combined_data %>% 
+  filter(Condition == "Music") %>%
+  group_by(Segment) %>% 
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Music")) %>% 
+  select(Condition, Segment, MeanHeartRate)
+
+questionnaires_byseg <- combined_data %>% 
+  filter(Condition == "Questionnaires") %>%
+  group_by(Segment) %>% 
+  filter(SubjectID != "61") %>% # removing ppt 61 because of potential issue
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Questionnaires")) %>% 
+  select(Condition, Segment, MeanHeartRate) 
+
+resting_byseg <- combined_data %>% 
+  filter(Condition == "Resting") %>%
+  group_by(Segment) %>% 
+  filter(SubjectID != "302" ) %>% # removing ppt 302 because of potential issue 
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>%
+  mutate(Condition = paste("Resting")) %>% 
+  select(Condition, Segment, MeanHeartRate) 
+
+video_byseg <- combined_data %>% 
+  filter(Condition == "Video") %>%
+  group_by(Segment) %>% 
+  summarise(MeanHeartRate = mean(MeanHeartRate)) %>% 
+  mutate(Condition = paste("Video")) %>% 
+  select(Condition, Segment, MeanHeartRate) 
+
+byseg <- bind_rows(colorblock_byseg, magazines_byseg, music_byseg, questionnaires_byseg, resting_byseg, video_byseg)  
+
+byseg_graph <- ggplot(byseg, aes(x=Segment, y=MeanHeartRate, group=Condition, color=Condition)) + 
+  geom_line(size = 1.3) +
+  ggtitle("Mean Heart Rate Variation") + ylab("Mean Heart Rate") + 
+  theme(axis.title.x=element_blank()) + theme(legend.title = element_blank()); ggplotly(byseg_graph)
+
+ggplotly(byseg_graph)
+
+```
+
+```{r anovas & ancovas}
+
+combined_data$HeartID <- factor(combined_data$HeartID)
+combined_data$Condition <- factor(combined_data$Condition)
+combined_data <- combined_data %>% 
+  mutate(Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, "Recovery 1" = 3, "Recovery 2" = 4))
+combined_data
+
+# within subject anova 
+model1 <- aov(MeanHeartRate ~ Condition * Segment + Error(HeartID), data = combined_data)
+summary(model1)
+
+combined_data %>% 
+  group_by(Condition) 
+
+
+
+combined_data$MeanHeartRate
+
+combined_data %>% 
+  mutate(HeartID = factor(combined_data$HeartID),
+         Condition = factor(combined_data$Condition),
+         Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, "Recovery 1" = 3, "Recovery 2" = 4)) %>% 
+  group_by(Time) %>% 
+  summarise(MeanHeartRate = as.numeric(mean(MeanHeartRate))) %>% 
+  spread("MeanHeartRate")  ## cannot get spread to work 
+
+?spread
+
+#arse(data = test_df, xcoord = Time, ycoord = MeanHeartRate, saveout = TRUE)
+
+
+
+xc <- t(c(1,2,3,4,5,6,7,8,9,10))
+yc <- t(c(75,75,77,79,80,81,77,76,77,77))
+dataset1 <- data.frame(xc, yc)
+arse(data = dataset1, xcoord = dataset1[,1:10], ycoord = dataset1[,11:20], saveout = TRUE)
+data
+
+```
+
+
+
+
+```{r other notes}
+
+
+
+anova_data <- byseg
+
+# ordering the factors for condition and segment 
+anova_data$Condition <- factor(anova_data$Condition)
+anova_data$Segment <- factor(anova_data$Segment, levels = c("Baseline", "Stressor", "Recovery 1", "Recovery 2")) 
+str(anova_data$Segment)
+
+
+
+
+model <- lm(MeanHeartRate ~ Condition + Segment + Condition * Segment, anova_data)
+summary(model)
+anova(model)
+
+# Compact Model
+baseline <- lme(MeanHeartRate ~ 1, 
+                random = ~1 | Condition/Segment, 
+                data = anova_data, 
+                method = "ML")
+
+# Augmented Model
+nextModel <- lme(MeanHeartRate ~ Segment, 
+                    random = ~1 | Condition/Segment, 
+                    data = anova_data, 
+                    method = "ML")
+
+nextModel <- lme(MeanHeartRate ~ Segment + , 
+                    random = ~1 | Condition/Segment, 
+                    data = anova_data, 
+                    method = "ML")
+
+anova(baseline, nextModel)
+
+
+byseg_graph <- ggplot(byseg, aes(x=Segment, y=MeanHeartRate, group=Condition, color=Condition)) + 
+  geom_line(size = 1.3) +
+  ggtitle("Mean Heart Rate Variation") + ylab("Mean Heart Rate") + 
+  theme(axis.title.x=element_blank()) + theme(legend.title = element_blank()); ggplotly(byseg_graph)
+
+
+
+```
+
+
+
+
+
+
+```
+
+
+References
+
+https://rcompanion.org/handbook/I_09.html
+http://www.jason-french.com/tutorials/repeatedmeasures.html
+https://stats.idre.ucla.edu/r/seminars/repeated-measures-analysis-with-r/
+https://cran.r-project.org/web/packages/lme4/vignettes/lmer.pdf
+http://www.tqmp.org/RegularArticles/vol15-2/p148/p148.pdf
+https://cran.csiro.au/web/packages/arse/arse.pdf
+
+
+bayesian
+https://easystats.github.io/bayestestR/articles/bayestestR.html
+https://easystats.github.io/bayestestR/articles/example1.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

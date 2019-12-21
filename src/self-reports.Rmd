@@ -11,7 +11,7 @@ rm(list = ls())
 setwd("~/Documents/Baseline/data")
 for (pkg in c("tidyverse", "cowplot", "maditr", "plotly", "infer",
               "psych", "ggpubr", "grid", "gridExtra")) {library(pkg, character.only = TRUE)}
-AllData <- read_csv("joined_baseline_data.csv") 
+AllData <- read_csv("baseline_joined_data.csv") 
 ```
 
 ```{r counts by condition,echo=FALSE}

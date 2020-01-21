@@ -10,7 +10,8 @@ The first step is concatenating all of the data and reducing the dimensions to c
 
 ```{r setup, include=FALSE}
 rm(list = ls())
-setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline/data")
+setwd("~/Documents/Baseline/baseline/data")
+#setwd("C:/Users/bkram/CloudStation/HEART Lab/Baseline Study/baseline/data")
 for (pkg in c("tidyverse", "cowplot", "plotly", "infer", "psych", "ggpubr", "grid", 
               "rcompanion", "nlme", "lme4", "lmerTest", "car", "multcompView", 
               "lsmeans", "gridExtra", "arse", "rstanarm", "bayestestR")) {library(pkg, character.only = TRUE)}
@@ -228,24 +229,29 @@ ggplotly(byseg_graph)
 combined_data$HeartID <- factor(combined_data$HeartID)
 combined_data$Condition <- factor(combined_data$Condition)
 combined_data <- combined_data %>% 
-  mutate(Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, "Recovery 1" = 3, "Recovery 2" = 4))
+  mutate(Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, 
+                              "Recovery 1" = 3, "Recovery 2" = 4))
 combined_data
 
 # within subject anova 
 model1 <- aov(MeanHeartRate ~ Condition * Segment + Error(HeartID), data = combined_data)
 summary(model1)
 
+# in the past, we ran the anova > then did t-tests between different conditions > corrected with tukey analyses post hoc > but we need to run ancovas that control for baseline (and potentially other factors) and use the arse package to measure AUC (although i also saw some suggestions to use MLMs or a Bayesian approach to deal with time-series variations) > this is where i am now 
+
+```
+
+```{r}
 combined_data %>% 
   group_by(Condition) 
-
-
 
 combined_data$MeanHeartRate
 
 combined_data %>% 
   mutate(HeartID = factor(combined_data$HeartID),
          Condition = factor(combined_data$Condition),
-         Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, "Recovery 1" = 3, "Recovery 2" = 4)) %>% 
+         Time = dplyr::recode(Segment, "Baseline" = 1, "Stressor" = 2, 
+                              "Recovery 1" = 3, "Recovery 2" = 4)) %>% 
   group_by(Time) %>% 
   summarise(MeanHeartRate = as.numeric(mean(MeanHeartRate))) %>% 
   spread("MeanHeartRate")  ## cannot get spread to work 

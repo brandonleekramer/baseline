@@ -242,6 +242,27 @@ summary(model1)
 ```
 
 ```{r}
+
+test_min <- combined_data %>% 
+  filter(Segment == "Stressor") %>% 
+  group_by(HeartID) %>% 
+  count()
+
+min(test_min$n)
+
+test_data <- combined_data %>%
+  group_by(HeartID, Segment) %>% 
+  select(HeartID, MeanHeartRate) %>% 
+  mutate(testno = row_number())
+
+new_test_data <- reshape(as.data.frame(test_data), idvar = "HeartID", timevar = "testno", direction = "wide") 
+
+new_test_data
+```
+
+
+
+```{r}
 combined_data %>% 
   group_by(Condition) 
 
